@@ -3,7 +3,10 @@ import axios from 'axios';
 import CheckboxItem from './CheckboxItem';
 import { io } from 'socket.io-client';
 
-const socket = io(import.meta.env.VITE_API_URL);
+const API_URL  = import.meta.env.VITE_API_URL
+
+const socket = io(API_URL);
+
 
 interface Checkbox {
   id: string
@@ -40,7 +43,7 @@ export default function CheckboxGrid({ userId }: CheckboxGridProps) {
       setLoading(true)
       setError(null)
       console.log('📡 Fetching checkboxes from /api/checkboxes...')
-      const response = await axios.get('/api/checkboxes')
+      const response = await axios.get(`${API_URL}/api/checkboxes`)
       console.log('✅ Checkboxes fetched:', response.data)
       setCheckboxes(response.data)
     } catch (error) {
@@ -54,7 +57,7 @@ export default function CheckboxGrid({ userId }: CheckboxGridProps) {
   const handleToggle = async (checkboxId: string, newState: boolean) => {
     try {
       console.log(`📤 Updating checkbox ${checkboxId} to ${newState}`)
-      await axios.post(`/api/checkboxes/${checkboxId}/toggle`, {
+      await axios.post(`${API_URL}/api/checkboxes/${checkboxId}/toggle`, {
         checked: newState ? 1 : 0,
         userId
       })
