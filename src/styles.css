@@ -194,7 +194,7 @@ header {
 
 .checkbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 54px);
+  grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
   grid-auto-rows: 54px;
   align-items: start;
   gap: 7px;
@@ -357,7 +357,7 @@ header {
   }
 
   .checkbox-grid {
-    grid-template-columns: repeat(auto-fill, 48px);
+    grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
     grid-auto-rows: 48px;
     gap: 6px;
   }
