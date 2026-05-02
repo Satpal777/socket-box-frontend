@@ -51,7 +51,7 @@ function CheckboxItem({ checkbox, onToggle }: CheckboxItemProps) {
           onToggle(checkbox.id, !isChecked)
         }
       }}
-      title={isChecked && checkbox.updatedBy ? `Checked by ${checkbox.updatedBy}` : 'Click to check'}
+
     >
       {/*
         Always render the check icon — CSS controls visibility via .checked class.
