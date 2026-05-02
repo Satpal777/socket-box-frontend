@@ -6,6 +6,7 @@ import CheckboxItem from './CheckboxItem';
 const CELL_SIZE = 54;
 const GAP = 7;
 const API_URL = import.meta.env.VITE_API_URL;
+const ASSIGN_URL = import.meta.env.VITE_ASSIGN_URL;
 
 interface Checkbox {
   id: string;
@@ -22,6 +23,17 @@ interface CheckboxGridProps {
     totalCount: number;
   }) => void;
 }
+async function assignBackend(): Promise<string> {
+  try {
+    const res = await fetch(ASSIGN_URL, { credentials: 'include' });
+    if (!res.ok) throw new Error('Assign failed');
+    const { backend } = await res.json();
+    return backend;
+  } catch {
+    console.warn('Worker assign failed, falling back to API_URL');
+    return API_URL;
+  }
+}
 
 export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProps) {
   const [checkboxes, setCheckboxes] = useState<Checkbox[]>([]);
@@ -36,15 +48,24 @@ export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProp
   const socketRef = useRef<Socket | null>(null);
   const indexMapRef = useRef<Map<string, number>>(new Map());
   const parentRef = useRef<HTMLDivElement>(null);
+  const backendRef = useRef<string>(API_URL);
 
   useEffect(() => {
-    const fetchCheckboxes = async () => {
+    let cancelled = false;
+
+    const init = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${API_URL}/api/checkboxes`);
+        const backend = await assignBackend();
+        backendRef.current = backend;
+        console.log('Assigned backend:', backend);
+
+        const res = await fetch(`${backend}/api/checkboxes`);
         const { total, items }: { total: number; items: Checkbox[] } = await res.json();
+
+        if (cancelled) return;
 
         const data: Checkbox[] = Array.from({ length: total }, (_, i) => ({
           id: String(i + 1),
@@ -67,55 +88,69 @@ export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProp
 
         setCheckboxes(data);
         setCheckedCount(count);
+
+        const socket: Socket = io(backend);
+
+        socketRef.current = socket;
+
+        const onConnect = () => {
+          setConnected(true);
+          socket.emit('user:join', userId);
+        };
+
+        const onDisconnect = async (reason: string) => {
+          setConnected(false);
+
+          if (reason === 'transport error' || reason === 'transport close') {
+            console.warn('Backend lost, re-assigning...');
+            document.cookie = 'io=; Max-Age=0; path=/;';
+            await new Promise(r => setTimeout(r, 2000));
+            if (!cancelled) {
+              socket.disconnect();
+              init();
+            }
+          }
+        };
+
+        const onUsersOnline = (count: number) => setOnlineCount(count);
+
+        const onCheckboxUpdated = (updated: Checkbox) => {
+          const idx = indexMapRef.current.get(updated.id);
+          if (idx === undefined) return;
+          setCheckboxes(prev => {
+            const wasChecked = prev[idx].checked;
+            if (wasChecked !== updated.checked) {
+              setCheckedCount(c => updated.checked === 1 ? c + 1 : c - 1);
+            }
+            const next = [...prev];
+            next[idx] = updated;
+            return next;
+          });
+        };
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on('users:online', onUsersOnline);
+        socket.on('checkbox:updated', onCheckboxUpdated);
+
+        if (socket.connected) {
+          setConnected(true);
+          socket.emit('user:join', userId);
+        }
+
       } catch {
-        setError('Failed to load checkboxes. Is the backend running?');
+        if (!cancelled) setError('Failed to load checkboxes. Is the backend running?');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchCheckboxes();
-
-    const socket: Socket = io(API_URL);
-    socketRef.current = socket;
-
-    const onConnect = () => {
-      setConnected(true);
-      socket.emit('user:join', userId);
-    };
-    const onDisconnect = () => setConnected(false);
-    const onUsersOnline = (count: number) => setOnlineCount(count);
-
-    const onCheckboxUpdated = (updated: Checkbox) => {
-      const idx = indexMapRef.current.get(updated.id);
-      if (idx === undefined) return;
-      setCheckboxes(prev => {
-        const wasChecked = prev[idx].checked;
-        if (wasChecked !== updated.checked) {
-          setCheckedCount(c => updated.checked === 1 ? c + 1 : c - 1);
-        }
-        const next = [...prev];
-        next[idx] = updated;
-        return next;
-      });
-    };
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('users:online', onUsersOnline);
-    socket.on('checkbox:updated', onCheckboxUpdated);
-
-    if (socket.connected) {
-      setConnected(true);
-      socket.emit('user:join', userId);
-    }
+    init();
 
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('users:online', onUsersOnline);
-      socket.off('checkbox:updated', onCheckboxUpdated);
-      socket.disconnect();
+      cancelled = true;
+      socketRef.current?.disconnect();
+      socketRef.current = null;
     };
   }, [userId]);
 
