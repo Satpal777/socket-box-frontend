@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 
 interface Checkbox {
   id: string
@@ -22,10 +22,19 @@ const CheckIcon = () => (
   </svg>
 )
 
-export default function CheckboxItem({ checkbox, onToggle }: CheckboxItemProps) {
+function CheckboxItem({ checkbox, onToggle }: CheckboxItemProps) {
   const [imageError, setImageError] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
+
   const isChecked = checkbox.checked === 1
   const avatarUrl = getAvatarUrl(checkbox.updatedBy)
+
+  // Reset image state whenever the avatar source changes (different user checked it)
+  useEffect(() => {
+    setImageError(false)
+    setImageLoaded(false)
+  }, [avatarUrl])
+
   const showAvatar = isChecked && avatarUrl && !imageError
 
   return (
@@ -44,18 +53,26 @@ export default function CheckboxItem({ checkbox, onToggle }: CheckboxItemProps) 
       }}
       title={isChecked && checkbox.updatedBy ? `Checked by ${checkbox.updatedBy}` : 'Click to check'}
     >
-      {showAvatar ? (
+      {/*
+        Always render the check icon — CSS controls visibility via .checked class.
+        This means there is NO blank gap while the avatar loads: the check icon
+        stays visible, and the avatar fades in on top of it once ready.
+      */}
+      <span className="check-icon" aria-hidden="true">
+        <CheckIcon />
+      </span>
+
+      {showAvatar && (
         <img
-          src={avatarUrl!}
+          src={avatarUrl}
           alt={`Checked by ${checkbox.updatedBy}`}
-          className="avatar-image"
+          className={`avatar-image ${imageLoaded ? 'avatar-loaded' : ''}`}
+          onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
         />
-      ) : (
-        <span className="check-icon" aria-hidden="true">
-          <CheckIcon />
-        </span>
       )}
     </div>
   )
 }
+
+export default memo(CheckboxItem)
