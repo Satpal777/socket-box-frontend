@@ -62,6 +62,7 @@ export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProp
         backendRef.current = backend;
         console.log('Assigned backend:', backend);
 
+        const token = localStorage.getItem('aura_token');
         const res = await fetch(`${backend}/api/checkboxes`);
         const { total, items }: { total: number; items: Checkbox[] } = await res.json();
 
@@ -89,7 +90,9 @@ export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProp
         setCheckboxes(data);
         setCheckedCount(count);
 
-        const socket: Socket = io(backend);
+        const socket: Socket = io(backend, {
+          auth: { token }
+        });
 
         socketRef.current = socket;
 
