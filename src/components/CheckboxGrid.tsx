@@ -63,7 +63,11 @@ export default function CheckboxGrid({ userId, onStatsChange }: CheckboxGridProp
         console.log('Assigned backend:', backend);
 
         const token = localStorage.getItem('aura_token');
-        const res = await fetch(`${backend}/api/checkboxes`);
+        const res = await fetch(`${backend}/api/checkboxes`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const { total, items }: { total: number; items: Checkbox[] } = await res.json();
 
         if (cancelled) return;
