@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
 
-const AURA_AUTH_URL = import.meta.env.VITE_AURA_AUTH_URL ?? "http://localhost:3000";
-// TODO: Replace with your actual Client ID and Secret from the Aura Auth dashboard.
-// WARNING: Exposing client_secret in the frontend is not secure.
-// This is added here as a placeholder for you to complete later, 
-// consider using PKCE or moving the token exchange to your backend.
-const CLIENT_ID = import.meta.env.VITE_CLIENT_ID ?? "YOUR_CLIENT_ID";
-const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET ?? "YOUR_CLIENT_SECRET";
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI ?? "http://localhost:5173/callback";
+const AURA_AUTH_URL = import.meta.env.VITE_AURA_AUTH_URL;
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
+const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
 
 export default function Callback() {
   const [error, setError] = useState<string | null>(null);
