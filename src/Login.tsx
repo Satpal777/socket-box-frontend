@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-const AURA_AUTH_URL = import.meta.env.VITE_AURA_AUTH_URL ?? "http://localhost:3000";
-const CLIENT_ID = import.meta.env.VITE_CLIENT_ID ?? "YOUR_CLIENT_ID";
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI ?? "http://localhost:5173/callback";
+const AURA_AUTH_URL = import.meta.env.VITE_AURA_AUTH_URL;
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
